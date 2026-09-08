@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Likeness Watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  const GOOGLE_CLIENT_ID = "%%GOOGLE_OAUTH_CLIENT_ID%%";
+</script>
+<style>
+  :root {
+    --bg: #0A0F0D;
+    --surface: #121917;
+    --surface-2: #16201D;
+    --hairline: #22302B;
+    --signal: #3ED598;
+    --signal-dim: #2A8F68;
+    --red: #E85D5D;
+    --amber: #E8B84B;
+    --text: #E7EFEA;
+    --muted: #7C8B85;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 0 0 80px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 20px; }
+
+  header {
+    padding: 36px 0 28px; border-bottom: 1px solid var(--hairline);
+  }
+  .wordmark {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.5rem;
+    color: var(--text); letter-spacing: -0.01em; margin: 0 0 6px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .wordmark .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--signal); box-shadow: 0 0 8px var(--signal); }
+  .tagline { color: var(--muted); font-size: 0.92rem; line-height: 1.5; max-width: 46ch; margin: 0; }
+
+  .positioning {
+    margin-top: 22px; padding: 16px 18px; background: var(--surface);
+    border: 1px solid var(--hairline); border-left: 3px solid var(--signal-dim);
+    font-size: 0.85rem; line-height: 1.6; color: var(--muted);
+  }
+  .positioning b { color: var(--text); font-weight: 600; }
+
+  .signin-box { margin-top: 18px; display: flex; align-items: center; gap: 12px; }
+  #signedInLabel { font-size: 0.82rem; color: var(--muted); }
+  .link-btn {
+    background: none; border: none; color: var(--signal); font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem; cursor: pointer; padding: 0; text-decoration: underline;
+  }
+  .watchlist-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 4px;
+    padding: 10px 12px; margin-bottom: 8px; font-size: 0.85rem;
+  }
+  .watchlist-item button {
+    background: none; border: 1px solid var(--hairline); color: var(--muted);
+    border-radius: 3px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer;
+  }
+  .add-watch-btn {
+    background: none; border: 1px solid var(--signal-dim); color: var(--signal);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; padding: 5px 10px;
+    border-radius: 3px; cursor: pointer;
+  }
+
+  .intake { margin-top: 32px; }
+  .intake-label {
+    font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; font-weight: 700;
+    color: var(--text); margin-bottom: 4px;
+  }
+  .intake-sub { color: var(--muted); font-size: 0.82rem; margin-bottom: 16px; }
+
+  .talent-row {
+    display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start;
+  }
+  .talent-row input {
+    flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem;
+    background: var(--surface); border: 1px solid var(--hairline); color: var(--text);
+    padding: 11px 12px; border-radius: 4px;
+  }
+  .talent-row input::placeholder { color: #4A5A54; }
+  .talent-row .remove {
+    background: none; border: 1px solid var(--hairline); color: var(--muted);
+    width: 38px; border-radius: 4px; cursor: pointer; font-size: 1rem; flex-shrink: 0;
+  }
+
+  .add-row {
+    background: none; border: 1px dashed var(--hairline); color: var(--signal);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; padding: 9px 14px;
+    border-radius: 4px; cursor: pointer; margin-top: 4px;
+  }
+
+  .run-btn {
+    display: block; width: 100%; margin-top: 20px; padding: 13px;
+    background: var(--signal); color: #06120D; border: none; border-radius: 4px;
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.95rem;
+    cursor: pointer; letter-spacing: 0.01em;
+  }
+  .run-btn:disabled { background: var(--signal-dim); opacity: 0.6; cursor: default; }
+
+  #status { color: var(--muted); font-size: 0.82rem; margin-top: 10px; min-height: 1.2em; }
+
+  .results { margin-top: 32px; display: flex; flex-direction: column; gap: 16px; }
+
+  .case {
+    background: var(--surface); border: 1px solid var(--hairline);
+    border-left: 4px solid var(--hairline); border-radius: 2px; overflow: hidden;
+  }
+  .case.red { border-left-color: var(--red); }
+  .case.yellow { border-left-color: var(--amber); }
+  .case.green { border-left-color: var(--signal); }
+
+  .case-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; border-bottom: 1px solid var(--hairline);
+  }
+  .case-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1rem; }
+  .case-flag {
+    font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 3px;
+  }
+  .case-flag.red { background: rgba(232,93,93,0.15); color: var(--red); }
+  .case-flag.yellow { background: rgba(232,184,75,0.15); color: var(--amber); }
+  .case-flag.green { background: rgba(62,213,152,0.15); color: var(--signal); }
+
+  .case-body { padding: 14px 16px; }
+  .case-reason { font-size: 0.85rem; color: var(--text); margin-bottom: 10px; }
+  .case-action {
+    font-size: 0.82rem; color: var(--muted); background: var(--surface-2);
+    padding: 10px 12px; border-radius: 3px; margin-bottom: 14px; line-height: 1.5;
+  }
+  .case-action b { color: var(--signal); }
+
+  .sub-label {
+    font-size: 0.72rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.06em; margin: 14px 0 8px;
+  }
+  .finding {
+    padding: 10px 12px; background: var(--surface-2); border-radius: 3px;
+    margin-bottom: 8px; font-size: 0.82rem;
+  }
+  .finding.matched { box-shadow: inset 3px 0 0 var(--red); }
+  .finding-claim { color: var(--text); margin-bottom: 5px; }
+  .finding-excerpt { color: var(--muted); margin-bottom: 6px; line-height: 1.5; }
+  .finding a { color: var(--signal); text-decoration: none; font-size: 0.78rem; word-break: break-all; }
+  .empty-note { color: var(--muted); font-size: 0.8rem; }
+
+  .case-footer {
+    display: flex; justify-content: space-between; padding: 10px 16px;
+    border-top: 1px solid var(--hairline);
+  }
+  .copy-btn {
+    background: none; border: 1px solid var(--hairline); color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; padding: 6px 12px;
+    border-radius: 3px; cursor: pointer;
+  }
+  .copy-btn.copied { color: var(--signal); border-color: var(--signal-dim); }
+
+  .pending {
+    display: flex; align-items: center; gap: 10px; color: var(--muted);
+    font-size: 0.85rem; padding: 14px 16px; background: var(--surface);
+    border: 1px solid var(--hairline); border-radius: 2px;
+  }
+  .spinner {
+    width: 12px; height: 12px; border: 2px solid var(--hairline);
+    border-top-color: var(--signal); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="wordmark"><span class="dot"></span>Likeness Watch</p>
+    <p class="tagline">Cited, text-based evidence intake for talent likeness misuse — no biometric enrollment required.</p>
+    <div id="signinBox" class="signin-box">
+      <div id="gsiButton"></div>
+    </div>
+    <div id="signedInBox" class="signin-box" style="display:none">
+      <span id="signedInLabel"></span>
+      <button id="signOutBtn" class="link-btn">Sign out</button>
+    </div>
+    <div class="positioning">
+      Tools like <b>Loti AI</b> detect your face or voice in a video using biometric matching, but require enrolling that biometric data first. Enterprise platforms like <b>ZeroFox</b>, <b>Cision</b>, and <b>Meltwater</b> go further but require a sales call and a contract. Likeness Watch works from a name alone, free and self-serve — it cross-references product and investment claims made in your name against known scam-language patterns, and hands back a cited report you can act on immediately.
+    </div>
+  </header>
+
+  <div class="intake" id="watchlistSection" style="display:none">
+    <p class="intake-label">Your watchlist</p>
+    <p class="intake-sub">Signed-in talents are re-checked automatically and you'll get an email if anything new turns up.</p>
+    <div id="watchlistItems"></div>
+  </div>
+
+  <div class="intake">
+    <p class="intake-label">Case intake</p>
+    <p class="intake-sub">Add one talent, or a whole roster. Known endorsements are optional — comma separated.</p>
+
+    <div id="talentRows"></div>
+    <button class="add-row" id="addRow" type="button">+ add another talent</button>
+    <button class="run-btn" id="runBtn">Run report</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="results" id="results"></div>
+</div>
+
+<script>
+  let idToken = null;
+  let currentUser = null;
+
+  function handleCredentialResponse(response) {
+    idToken = response.credential;
+    fetch('/auth/session', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + idToken },
+    })
+      .then(r => r.json())
+      .then(user => {
+        currentUser = user;
+        document.getElementById('signinBox').style.display = 'none';
+        document.getElementById('signedInBox').style.display = 'flex';
+        document.getElementById('signedInLabel').textContent = `Signed in as ${user.name || user.email}`;
+        document.getElementById('watchlistSection').style.display = 'block';
+        loadWatchlist();
+      });
+  }
+
+  window.onload = () => {
+    if (GOOGLE_CLIENT_ID) {
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleCredentialResponse,
+      });
+      google.accounts.id.renderButton(document.getElementById('gsiButton'), { theme: 'filled_black', size: 'medium' });
+    } else {
+      document.getElementById('signinBox').innerHTML = '<span style="color:var(--muted);font-size:0.8rem">Sign-in not configured yet.</span>';
+    }
+  };
+
+  document.getElementById('signOutBtn').addEventListener('click', () => {
+    idToken = null;
+    currentUser = null;
+    document.getElementById('signinBox').style.display = 'flex';
+    document.getElementById('signedInBox').style.display = 'none';
+    document.getElementById('watchlistSection').style.display = 'none';
+  });
+
+  async function loadWatchlist() {
+    const res = await fetch('/watchlist', { headers: { 'Authorization': 'Bearer ' + idToken } });
+    const items = await res.json();
+    const container = document.getElementById('watchlistItems');
+    container.innerHTML = items.length === 0
+      ? '<p class="empty-note">No one on your watchlist yet — run a report below, then add it.</p>'
+      : items.map(i => `
+        <div class="watchlist-item">
+          <span>${escapeHtml(i.talent_name)}</span>
+          <button data-id="${i.id}">Remove</button>
+        </div>`).join('');
+    container.querySelectorAll('button[data-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        await fetch(`/watchlist/${btn.dataset.id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + idToken } });
+        loadWatchlist();
+      });
+    });
+  }
+
+  async function addToWatchlist(talent) {
+    if (!idToken) { alert('Sign in with Google first to add a watchlist entry.'); return; }
+    await fetch('/watchlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+      body: JSON.stringify(talent),
+    });
+    loadWatchlist();
+  }
+
+  const rowsEl = document.getElementById('talentRows');
+  const resultsEl = document.getElementById('results');
+  const statusEl = document.getElementById('status');
+  const runBtn = document.getElementById('runBtn');
+
+  function addRow(name = '', endorsements = '') {
+    const row = document.createElement('div');
+    row.className = 'talent-row';
+    row.innerHTML = `
+      <input class="tname" placeholder="Talent name" value="${name}" />
+      <input class="tendorse" placeholder="Known endorsements (optional)" value="${endorsements}" />
+      <button class="remove" type="button" title="Remove">&times;</button>
+    `;
+    row.querySelector('.remove').addEventListener('click', () => {
+      if (rowsEl.children.length > 1) row.remove();
+    });
+    rowsEl.appendChild(row);
+  }
+  addRow();
+
+  document.getElementById('addRow').addEventListener('click', () => addRow());
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str ?? '';
+    return div.innerHTML;
+  }
+
+  function reportToText(r) {
+    let out = `LIKENESS WATCH — CASE FILE\n${r.talent_name}\nRisk: ${r.risk_flag.toUpperCase()}\n${r.reason}\n\nRecommended action:\n${r.recommended_action}\n\n`;
+    out += `Findings (${r.findings.length}):\n`;
+    for (const f of r.findings) {
+      out += `- ${f.claim}\n  Source: ${f.source.title} — ${f.source.url}\n  Scam pattern matched: ${f.scam_pattern_matched}\n`;
+    }
+    out += `\nPrior victim reports (${r.victim_reports.length}):\n`;
+    for (const v of r.victim_reports) {
+      out += `- ${v.title} — ${v.url}\n`;
+    }
+    out += `\nGenerated: ${r.generated_at}`;
+    return out;
+  }
+
+  function renderCase(r) {
+    const el = document.createElement('div');
+    if (r.error) {
+      el.className = 'case';
+      el.innerHTML = `<div class="case-head"><span class="case-name">${escapeHtml(r.talent_name)}</span></div>
+        <div class="case-body"><p class="empty-note">Could not complete: ${escapeHtml(r.error)}</p></div>`;
+      return el;
+    }
+
+    const flagLabel = { red: 'HIGH RISK', yellow: 'WATCH', green: 'CLEAR' }[r.risk_flag];
+    el.className = `case ${r.risk_flag}`;
+
+    let findingsHtml = r.findings.length === 0
+      ? '<p class="empty-note">No unverified mentions found.</p>'
+      : r.findings.map(f => `
+        <div class="finding ${f.scam_pattern_matched ? 'matched' : ''}">
+          <div class="finding-claim">${escapeHtml(f.claim)}</div>
+          <div class="finding-excerpt">${escapeHtml(f.source.excerpt)}</div>
+          <a href="${f.source.url}" target="_blank" rel="noopener">${escapeHtml(f.source.title)}</a>
+        </div>`).join('');
+
+    let victimsHtml = r.victim_reports.length === 0
+      ? '<p class="empty-note">None found.</p>'
+      : r.victim_reports.map(v => `
+        <div class="finding">
+          <div class="finding-excerpt">${escapeHtml(v.excerpt)}</div>
+          <a href="${v.url}" target="_blank" rel="noopener">${escapeHtml(v.title)}</a>
+        </div>`).join('');
+
+    el.innerHTML = `
+      <div class="case-head">
+        <span class="case-name">${escapeHtml(r.talent_name)}</span>
+        <span class="case-flag ${r.risk_flag}">${flagLabel}</span>
+      </div>
+      <div class="case-body">
+        <p class="case-reason">${escapeHtml(r.reason)}</p>
+        <div class="case-action"><b>Next step:</b> ${escapeHtml(r.recommended_action)}</div>
+        <p class="sub-label">Findings (${r.findings.length})</p>
+        ${findingsHtml}
+        <p class="sub-label">Prior victim reports (${r.victim_reports.length})</p>
+        ${victimsHtml}
+      </div>
+      <div class="case-footer">
+        <button class="add-watch-btn">Add to watchlist</button>
+        <button class="copy-btn">Copy report</button>
+      </div>
+    `;
+    el.querySelector('.add-watch-btn').addEventListener('click', () => {
+      addToWatchlist({ talent_name: r.talent_name, known_endorsements: [] });
+    });
+    el.querySelector('.copy-btn').addEventListener('click', async (e) => {
+      await navigator.clipboard.writeText(reportToText(r));
+      e.target.textContent = 'Copied';
+      e.target.classList.add('copied');
+      setTimeout(() => { e.target.textContent = 'Copy report'; e.target.classList.remove('copied'); }, 1800);
+    });
+    return el;
+  }
+
+  runBtn.addEventListener('click', async () => {
+    const talents = [...rowsEl.querySelectorAll('.talent-row')].map(row => ({
+      talent_name: row.querySelector('.tname').value.trim(),
+      known_endorsements: row.querySelector('.tendorse').value.split(',').map(s => s.trim()).filter(Boolean),
+    })).filter(t => t.talent_name);
+
+    if (talents.length === 0) { statusEl.textContent = 'Enter at least one talent name.'; return; }
+
+    runBtn.disabled = true;
+    statusEl.textContent = `Running ${talents.length} case${talents.length > 1 ? 's' : ''}...`;
+    resultsEl.innerHTML = '';
+
+    const pendingEls = talents.map(t => {
+      const p = document.createElement('div');
+      p.className = 'pending';
+      p.innerHTML = `<span class="spinner"></span> Searching for ${escapeHtml(t.talent_name)}...`;
+      resultsEl.appendChild(p);
+      return p;
+    });
+
+    try {
+      const res = await fetch('/report/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ talents }),
+      });
+      if (!res.ok || !res.body) throw new Error(`Server returned ${res.status}`);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let idx = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const report = JSON.parse(line);
+          const caseEl = renderCase(report);
+          if (pendingEls[idx]) pendingEls[idx].replaceWith(caseEl);
+          idx++;
+        }
+      }
+      statusEl.textContent = '';
+    } catch (err) {
+      statusEl.textContent = 'Error: ' + err.message;
+    } finally {
+      runBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
