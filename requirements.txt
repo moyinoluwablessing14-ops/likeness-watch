@@ -4,5 +4,4 @@ parallel-web
 fastapi
 uvicorn[standard]
 python-dotenv
-google-cloud-firestore
 google-auth

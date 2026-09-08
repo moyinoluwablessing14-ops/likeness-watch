@@ -14,14 +14,13 @@ watched talent across every user in one pass without needing to know user IDs
 up front.
 """
 
-from google.cloud import firestore
-
 _db = None
 
 
 def _get_db():
     global _db
     if _db is None:
+        from google.cloud import firestore
         _db = firestore.Client()
     return _db
 
